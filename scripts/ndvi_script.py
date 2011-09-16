@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from osgeo import gdal
@@ -98,6 +99,27 @@ def reproject_dataset ( dataset, \
                 gdal.GRA_Bilinear )
     return dest
     
+def do_plot ( file_in, title, minval=0, maxval=0.95, cmap=plt.cm.spectral ):
+    """
+    A function to plot and label a raster dataset given by ``file_in``. Extra
+    options to choose bounds of the colourscale and the colormap to use.
+    """
+    g = gdal.Open ( file_in )
+    # Use the geotransform to 
+    geo_t = g.GetGeoTransform()
+    print "Raster extends from\n\t Lon: %f to %f" % (  geo_t[0], geo_t[0] + \
+                geo_t[1]*g.RasterXSize )
+    print "\t Lat: %f to %f" % ( geo_t[3], geo_t[3] + \
+    geo_t[5]*g.RasterYSize )
+    
+    data = g.ReadAsArray ()
+    cmap.set_over ( 'w' )
+    cmap.set_bad ( 'k' )
+    cmap.set_under ( 'k' )
+    plt.imshow ( data, interpolation='nearest', vmin=0, vmax=0.95, cmap=cmap )
+    plt.title( title )
+    
+    
 if __name__ == "__main__":
     red_filename = "red_2005001_uk.vrt"
     nir_filename = "nir_2005001_uk.vrt"
@@ -105,23 +127,9 @@ if __name__ == "__main__":
     ndvi = calculate_ndvi ( red_filename, nir_filename )
     save_raster ( "./ndvi.tif", ndvi, red_filename )
     # Data is now produced and saved. We can try to open the file and read it
-    g = gdal.Open ( "ndvi.tif" )
-    # Use the geotransform to 
-    geo_t = g.GetGeoTransform()
-    print "Raster extends from\n\t Lon: %f to %f" % (  geo_t[0], geo_t[0] + \
-                geo_t[1]*g.RasterXSize )
-    print "\t Lat: %f to %f" % ( geo_t[3], geo_t[3] + \
-                geo_t[5]*g.RasterYSize )
-    
-    data = g.ReadAsArray ()
-    cmap = plt.cm.spectral
-    cmap.set_over ( 'w' )
-    cmap.set_bad ( 'k' )
-    cmap.set_under ( 'k' )
+    fig = plt.figure( figsize=(8.3,5.8 ))
     plt.subplot( 1,2,1 )
-    plt.imshow ( data, interpolation='nearest', vmin=0, vmax=0.95, cmap=cmap)
-
-    plt.title("WGS84")
+    do_plot ( "ndvi.tif", "NDVI/WGS84" )
     plt.subplot( 1,2,2 )
     # Now, reproject and resample the NDVI dataset
     reprojected_dataset = reproject_dataset ( "ndvi.tif" )
@@ -132,20 +140,11 @@ if __name__ == "__main__":
     dst_ds = driver.CreateCopy( "./ndvi_osng.tif", reprojected_dataset, 0 )
     dst_ds = None # Flush the dataset to disk
     # Data is now saved. We can try to open the file and read it
-    g = gdal.Open ( "ndvi_osng.tif" )
-    # Use the geotransform to 
-    geo_t = g.GetGeoTransform()
-    print "Raster extends from\n\t Lon: %f to %f" % (  geo_t[0], geo_t[0] + \
-        geo_t[1]*g.RasterXSize )
-    print "\t Lat: %f to %f" % ( geo_t[3], geo_t[3] + \
-        geo_t[5]*g.RasterYSize )
+    do_plot ( "ndvi_osng.tif", "NDVI/OSNG" )
+    cax = fig.add_axes([0.05, 0.8, 0.95, 0.05])
+    cbase = matplotlib.colorbar.ColorbarBase( cax, cmap=plt.cm.spectral, \
+        norm=matplotlib.colors.normalize(0,0.95), orientation='horizontal', \
+        extend='both' )
     
-    data = g.ReadAsArray ()
-    cmap = plt.cm.spectral
-    cmap.set_over ( 'w' )
-    cmap.set_bad ( 'k' )
-    cmap.set_under ( 'k' )
-    plt.imshow ( data, interpolation='nearest', vmin=0, vmax=0.95, cmap=cmap)
-    plt.colorbar()
-    plt.title("OSNG")
-    plt.show()
+    fig.subplots_adjust(left=0.05, right=.98, top=0.72, bottom=0.04, \
+            wspace=0.05, hspace=0)
