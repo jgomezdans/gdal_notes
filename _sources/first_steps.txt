@@ -148,7 +148,7 @@ We now have two files, ``nir_2005001_uk.vrt`` and ``red_2005001_uk.vrt``. We can
 
     .. literalinclude:: ../scripts/ndvi_script.py
         :language: python
-        :lines: 101-122
+        :lines: 123-132
 
 
     .. rubric:: Footnotes
