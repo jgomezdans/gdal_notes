@@ -13,6 +13,8 @@ Contents:
 
    intro.rst
    ipython.rst
+   first_steps.rst
+   reprojection.rst
    
 Indices and tables
 ==================

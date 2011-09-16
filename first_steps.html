@@ -1,0 +1,557 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Finding things in raster files &mdash; GDAL notes v0.0 documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="GDAL notes v0.0 documentation" href="index.html" />
+    <link rel="next" title="Reprojecting and resampling data" href="reprojection.html" />
+    <link rel="prev" title="Starting to use Python to work with geospatial data" href="ipython.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="reprojection.html" title="Reprojecting and resampling data"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="ipython.html" title="Starting to use Python to work with geospatial data"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">GDAL notes v0.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="finding-things-in-raster-files">
+<h1>Finding things in raster files<a class="headerlink" href="#finding-things-in-raster-files" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="the-simplest-scenario">
+<h2>The simplest scenario<a class="headerlink" href="#the-simplest-scenario" title="Permalink to this headline">¶</a></h2>
+<p>The simplest scenario is to find a pixel when we know the coordinates of that pixel in the same projection as the geospatial dataset. This is farily common when working with high resolution data, usually in UTM coordinates, or when working with unprojected global datasets on a longitude/latitude grid. To find the pixel locations of coordinates, we need to use the geotransform. Assume we are interested in locating <a class="reference external" href="http://toolserver.org/~rhaworth/os/coor_g.php?pagename=Kinder_Scout&amp;params=SK086875_region%3AGB_scale%3A25000">Kinder Scout</a>, a moorland in the Peak District National Park. Its coordinates are  1.871417W, 53.384726N. In the MODIS integerised sinusoidal projection, the coordinates <a class="footnote-reference" href="#f1" id="id1">[1]</a> are (-124114.3, 5936117.4). Let&#8217;s calculate what pixel location is that, and plot a callbox in our map</p>
+<blockquote>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [50]: </span><span class="n">geot</span> <span class="o">=</span> <span class="n">lc_data</span><span class="o">.</span><span class="n">GetGeoTransform</span><span class="p">()</span>
+
+<span class="gp">In [52]: </span><span class="n">geot</span>
+<span class="gr">Out[52]: </span><span class="p">(</span><span class="o">-</span><span class="mf">1111950.519667</span><span class="p">,</span> <span class="mf">463.3127165279167</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">6671703.118</span><span class="p">,</span> \
+<span class="go">            0.0, -463.3127165279165)</span>
+
+<span class="gp">In [53]: </span><span class="c"># See the nominal resolution for MODIS 0.5km data, 463 in x \</span>
+<span class="go">         #and y. Note the -ve sign in the y as we start at the UL corner</span>
+<span class="gp">In [54]: </span><span class="n">pixel_x</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mf">124114.3</span> <span class="o">-</span> <span class="n">geot</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="n">geot</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> \
+<span class="go">        # The difference in distance between the UL corner (geot[0] \</span>
+<span class="go">        #and point of interest. Scaled by geot[1] to get pixel number</span>
+
+<span class="gp">In [55]: </span><span class="n">pixel_x</span>
+<span class="gr">Out[55]: </span><span class="mf">2132.115490094644</span> <span class="c"># A real number, not an integer!</span>
+
+<span class="gp">In [59]: </span><span class="n">pixel_y</span> <span class="o">=</span> <span class="p">(</span><span class="mf">5936117.4</span> <span class="o">-</span> <span class="n">geot</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="n">geot</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span> <span class="c"># Like for pixel_x, \</span>
+<span class="go">        #but in vertical direction. Note the different elements of geot \</span>
+<span class="go">        #being used</span>
+
+<span class="gp">In [60]: </span><span class="n">pixel_y</span>
+<span class="gr">Out[60]: </span><span class="mf">1587.66572070913</span> <span class="c"># Quick check: both pixel_x and pixel_y \</span>
+<span class="go">           # are &gt;=0 and pixel_x &lt;= lc_data.RasterXSize and \</span>
+<span class="go">           # pixel_y &lt;= lc_data.RasterYSize</span>
+
+<span class="gp">In [79]: </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span> <span class="p">(</span> <span class="n">pixel_x</span><span class="p">,</span> <span class="n">pixel_y</span><span class="p">,</span> <span class="s">&#39;ro&#39;</span><span class="p">)</span> <span class="c"># Add a red dot</span>
+<span class="gr">Out[79]: </span><span class="p">[</span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">lines</span><span class="o">.</span><span class="n">Line2D</span> <span class="n">at</span> <span class="mh">0x1064e2d0</span><span class="o">&gt;</span><span class="p">]</span>
+
+<span class="gp">In [80]: </span><span class="n">plt</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s">&#39;Kinder Scout&#39;</span><span class="p">,</span> <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="n">pixel_x</span><span class="p">,</span> <span class="n">pixel_y</span><span class="p">),</span>  \
+<span class="go">        xycoords=&#39;data&#39;, xytext=(-500, -60), \</span>
+<span class="go">        textcoords=&#39;offset points&#39;,  size=20, \</span>
+<span class="go">        bbox=dict(boxstyle=&quot;round4,pad=.5&quot;, fc=&quot;0.8&quot;), \</span>
+<span class="go">        arrowprops=dict(arrowstyle=&quot;-&gt;&quot;, \</span>
+<span class="go">        connectionstyle=&quot;angle,angleA=0,angleB=-90,rad=10&quot;, \</span>
+<span class="go">        color=&#39;w&#39;), )</span>
+<span class="gr">Out[80]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">Annotation</span> <span class="n">at</span> <span class="mh">0x10653090</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+</blockquote>
+<p>The last line that annotates the location of Kinder Scout is quite convoluted (see documentation on <tt class="docutils literal"><span class="pre">annotate</span></tt> <a class="reference external" href="http://matplotlib.sourceforge.net/api/pyplot_api.html#matplotlib.pyplot.annotate">in here</a>. Most of the command is taken from the examples there), but the final output is this:</p>
+<blockquote>
+<div class="figure">
+<img alt="_images/fig_2.png" src="_images/fig_2.png" />
+</div>
+</blockquote>
+<div class="section" id="try-it-out-on-some-other-places">
+<h3>Try it out on some other places<a class="headerlink" href="#try-it-out-on-some-other-places" title="Permalink to this headline">¶</a></h3>
+<p>Find the longitude and latitude of some places of interest in the British isles (West of Greenwich!) and using the <a class="reference external" href="http://landweb.nascom.nasa.gov/cgi-bin/developer/tilemap.cgi">MODLAND MODIS tile calculator</a> and the geotransform, repeat the above experiment. Note that the MODIS calculator calculates both the projected coordinates in the MODIS sinusoidal projection, as well as the pixel number, so it is a helpful way to check whether you got the right result.</p>
+<blockquote>
+<table border="1" class="docutils">
+<colgroup>
+<col width="54%" />
+<col width="21%" />
+<col width="26%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Park name</th>
+<th class="head">Longitude [deg]</th>
+<th class="head">Latitude [deg]</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Dartmoor national park</td>
+<td>-3.904</td>
+<td>50.58</td>
+</tr>
+<tr><td>New forest national park</td>
+<td>-1.595</td>
+<td>50.86</td>
+</tr>
+<tr><td>Exmoor national park</td>
+<td>-3.651</td>
+<td>51.14</td>
+</tr>
+<tr><td>Pembrokeshire coast national park</td>
+<td>-4.694</td>
+<td>51.64</td>
+</tr>
+<tr><td>Brecon beacons national park</td>
+<td>-3.432</td>
+<td>51.88</td>
+</tr>
+<tr><td>Pembrokeshire coast national park</td>
+<td>-4.79</td>
+<td>51.99</td>
+</tr>
+<tr><td>Norfolk and suffolk broads</td>
+<td>1.569</td>
+<td>52.62</td>
+</tr>
+<tr><td>Snowdonia national park</td>
+<td>-3.898</td>
+<td>52.9</td>
+</tr>
+<tr><td>Peak district national park</td>
+<td>-1.802</td>
+<td>53.3</td>
+</tr>
+<tr><td>Yorkshire dales national park</td>
+<td>-2.157</td>
+<td>54.23</td>
+</tr>
+<tr><td>North yorkshire moors national park</td>
+<td>-0.8855</td>
+<td>54.37</td>
+</tr>
+<tr><td>Lake district national park</td>
+<td>-3.084</td>
+<td>54.47</td>
+</tr>
+<tr><td>Galloway forest park</td>
+<td>-4.171</td>
+<td>54.87</td>
+</tr>
+<tr><td>Galloway forest park</td>
+<td>-4.191</td>
+<td>55.18</td>
+</tr>
+<tr><td>Galloway forest park</td>
+<td>-4.379</td>
+<td>55.28</td>
+</tr>
+<tr><td>Northumberland national park</td>
+<td>-2.228</td>
+<td>55.28</td>
+</tr>
+<tr><td>Loch lomond &amp; the trossachs national park</td>
+<td>-4.593</td>
+<td>56.24</td>
+</tr>
+<tr><td>Tay forest park</td>
+<td>-4.025</td>
+<td>56.59</td>
+</tr>
+<tr><td>Cairngorms national park</td>
+<td>-3.545</td>
+<td>57.08</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+</div>
+</div>
+<div class="section" id="reprojecting-from-python">
+<h2>Reprojecting from python<a class="headerlink" href="#reprojecting-from-python" title="Permalink to this headline">¶</a></h2>
+<p>The most general situation is that the points of interest and the geospatial dataset have different projections. For example, GPS receivers often quote WGS84 coordinates (and so does Google maps!). We shall see how to use GDAL to project data. The basics of this require the import of the <tt class="docutils literal"><span class="pre">osr</span></tt> module, and defining two SpatialReference object, one for the <em>source</em> projection and one for the <em>destination</em> projection. In GDAL, there are many different ways of defining projections. We&#8217;ve seen the EPSG codes, but we can also use the widely availabe Proj4 format, WKT, ESRI, etc. You can use <a class="reference external" href="http://spatialreference.org">spatialreference.org</a> to conveniently search for projections in a multitude of GDAL-useable formats. Once the projections are in place, one needs to define a <tt class="docutils literal"><span class="pre">CoordinateTransformation</span></tt> object. This object takes the two projection objects, and will have a method called <tt class="docutils literal"><span class="pre">TransformPoint</span></tt> that will transform a set of coordinates for you.</p>
+<p>Let&#8217;s demonstrate these concepts with a script. This script first sets up the WGS84 and MODIS sinusoidal projections. It uses them to create a <tt class="docutils literal"><span class="pre">CoordinateTransformation</span></tt> object. Once this is done, it loops over the table presented above, extracts the longitude and latitude, and feeds these to the transformation method. Note that this method returns three numbers <em>(x,y,z)</em>, as there could be a shift of height by changing the geoid or the datum.</p>
+<blockquote>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77</pre></div></td><td class="code"><div class="highlight"><pre><span class="c">#!/usr/bin/env python</span>
+
+<span class="kn">from</span> <span class="nn">osgeo</span> <span class="kn">import</span> <span class="n">ogr</span>
+<span class="kn">from</span> <span class="nn">osgeo</span> <span class="kn">import</span> <span class="n">osr</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">SYNOPSIS</span>
+
+<span class="sd">project_points.py</span>
+
+<span class="sd">DESCRIPTION</span>
+
+<span class="sd">A script to convert longitude latitude coordinates in WGS84 to the MODIS </span>
+<span class="sd">sinusoidal projection using GDAL. Currently it uses a big string, but can you </span>
+<span class="sd">modify it to take data in a file, or make it into a function?</span>
+
+<span class="sd">AUTHOR</span>
+
+<span class="sd">Jose Gomez-Dans &lt;j.gomez-dans@geog.ucl.ac.uk&gt;</span>
+
+<span class="sd">LICENSE</span>
+
+<span class="sd">This script is in the public domain, free from copyrights or restrictions.</span>
+
+<span class="sd">VERSION</span>
+
+<span class="sd">1.0</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+
+<span class="c"># The next line defines the data as a string</span>
+<span class="c"># as would be for example if read from a file etc.</span>
+<span class="n">park_data</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;Dartmoor national park,             -3.904,              50.58</span>
+<span class="s">New forest national park,             -1.595,              50.86</span>
+<span class="s">Exmoor national park,             -3.651,              51.14</span>
+<span class="s">Pembrokeshire coast national park,             -4.694,              51.64</span>
+<span class="s">Brecon beacons national park,             -3.432,              51.88</span>
+<span class="s">Pembrokeshire coast national park,              -4.79,              51.99</span>
+<span class="s">Norfolk and suffolk broads,              1.569,              52.62</span>
+<span class="s">Snowdonia national park,             -3.898,               52.9</span>
+<span class="s">Peak district national park,             -1.802,               53.3</span>
+<span class="s">Yorkshire dales national park,             -2.157,              54.23</span>
+<span class="s">North yorkshire moors national park,            -0.8855,              54.37</span>
+<span class="s">Lake district national park,             -3.084,              54.47</span>
+<span class="s">Galloway forest park,             -4.171,              54.87</span>
+<span class="s">Galloway forest park,             -4.191,              55.18</span>
+<span class="s">Galloway forest park,             -4.379,              55.28</span>
+<span class="s">Northumberland national park,             -2.228,              55.28</span>
+<span class="s">Loch lomond &amp; the trossachs national park,            -4.593,              56.24</span>
+<span class="s">Tay forest park,             -4.025,              56.59</span>
+<span class="s">Cairngorms national park,             -3.545,              57.08&quot;&quot;&quot;</span>
+
+<span class="c"># Define the source projection, WGS84 lat/lon. </span>
+<span class="n">wgs84</span> <span class="o">=</span> <span class="n">osr</span><span class="o">.</span><span class="n">SpatialReference</span><span class="p">(</span> <span class="p">)</span> <span class="c"># Define a SpatialReference object</span>
+<span class="n">wgs84</span><span class="o">.</span><span class="n">ImportFromEPSG</span><span class="p">(</span> <span class="mi">4326</span> <span class="p">)</span> <span class="c"># And set it to WGS84 using the EPSG code</span>
+
+<span class="c"># Now for the target projection, MODIS sinusoidal</span>
+<span class="n">modis_sinu</span> <span class="o">=</span> <span class="n">osr</span><span class="o">.</span><span class="n">SpatialReference</span><span class="p">()</span> <span class="c"># define the SpatialReference object</span>
+<span class="c"># In this case, we get the projection from a Proj4 string</span>
+<span class="n">modis_sinu</span><span class="o">.</span><span class="n">ImportFromProj4</span> <span class="p">(</span> \
+                <span class="s">&quot;+proj=sinu +R=6371007.181 +nadgrids=@null +wktext&quot;</span><span class="p">)</span>
+
+<span class="c"># Now, we define a coordinate transformtion object, *from* wgs84 *to* modis_sinu</span>
+<span class="n">tx</span> <span class="o">=</span> <span class="n">osr</span><span class="o">.</span><span class="n">CoordinateTransformation</span><span class="p">(</span> <span class="n">wgs84</span><span class="p">,</span> <span class="n">modis_sinu</span> <span class="p">)</span>
+<span class="c"># We loop over the lines of park_data, </span>
+<span class="c">#         using the split method to split by newline characters</span>
+<span class="k">for</span> <span class="n">linea</span> <span class="ow">in</span> <span class="n">park_data</span><span class="o">.</span><span class="n">split</span><span class="p">(</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span> <span class="p">):</span>
+    <span class="c"># Split linea by spacing</span>
+    <span class="n">park_name</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span> <span class="o">=</span> <span class="n">linea</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">)</span>
+    <span class="c"># Convert longitude and latitude values to floats</span>
+    <span class="c"># they are strings at the moment</span>
+    <span class="n">lon</span> <span class="o">=</span> <span class="nb">float</span> <span class="p">(</span> <span class="n">lon</span> <span class="p">)</span>
+    <span class="n">lat</span> <span class="o">=</span> <span class="nb">float</span> <span class="p">(</span> <span class="n">lat</span> <span class="p">)</span>
+    <span class="c"># Actually do the transformation using the TransformPoint method</span>
+    <span class="n">modis_x</span><span class="p">,</span> <span class="n">modis_y</span><span class="p">,</span> <span class="n">modis_z</span> <span class="o">=</span> <span class="n">tx</span><span class="o">.</span><span class="n">TransformPoint</span> <span class="p">(</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span> <span class="p">)</span>
+    <span class="c"># Print out</span>
+    <span class="k">print</span> <span class="n">park_name</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">modis_x</span><span class="p">,</span> <span class="n">modis_y</span>
+</pre></div>
+</td></tr></table></div>
+</blockquote>
+<p>The sample ouput (park name, longitude, latitude, MODIS <em>x</em> coordinate and MODIS <em>y</em> coordinate) is</p>
+<div class="highlight-python"><pre>Dartmoor national park -3.904 50.58 -275657.072566 5624245.72898
+New forest national park -1.595 50.86 -111950.267741 5655380.34353
+Exmoor national park -3.651 51.14 -254715.497137 5686514.95809
+[...]</pre>
+</div>
+<div class="section" id="some-more-examples">
+<h3>Some more examples<a class="headerlink" href="#some-more-examples" title="Permalink to this headline">¶</a></h3>
+<ol class="arabic simple">
+<li>Modify the script above, try convert the location of the national parks and plot them eg as a circle to the MODIS land cover image. Think about how you deal with parks that may be outside the area covered by the image.</li>
+<li>Try to convert the WGS84 data into a different coordinate system, and then convert these new coordinates back into WGS84.</li>
+</ol>
+</div>
+</div>
+<div class="section" id="saving-data">
+<h2>Saving data<a class="headerlink" href="#saving-data" title="Permalink to this headline">¶</a></h2>
+<p>Up to now, we have covered how to read data into numpy arrays. These arrays can be used to visualise the data, or to carry further processig on them. For example, you could write a simple function to read red and near-infrarred reflectances and calculate a vegetation index <a class="footnote-reference" href="#f2" id="id2">[2]</a> quite simply by</p>
+<blockquote>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">calculate_ndvi</span> <span class="p">(</span> <span class="n">red_filename</span><span class="p">,</span> <span class="n">nir_filename</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A function to calculate the Normalised Difference Vegetation Index</span>
+<span class="sd">    from red and near infrarred reflectances. The reflectance data ought to</span>
+<span class="sd">    be present on two different files, specified by the varaibles </span>
+<span class="sd">    `red_filename` and `nir_filename`. The file format ought to be</span>
+<span class="sd">    recognised by GDAL</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">osgeo</span> <span class="kn">import</span> <span class="n">gdal</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span> <span class="p">(</span> <span class="n">red_filename</span> <span class="p">)</span>
+    <span class="n">red</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">()</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span> <span class="p">(</span> <span class="n">nir_filename</span> <span class="p">)</span>
+    <span class="n">nir</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">()</span>
+    <span class="n">ndvi</span> <span class="o">=</span> <span class="p">(</span> <span class="mf">1.</span><span class="o">*</span><span class="n">nir</span> <span class="o">-</span> <span class="n">red</span> <span class="p">)</span> <span class="o">/</span> <span class="p">(</span> <span class="mf">1.</span><span class="o">*</span><span class="n">nir</span> <span class="o">+</span> <span class="n">red</span> <span class="p">)</span>
+    <span class="k">return</span> <span class="n">ndvi</span>
+</pre></div>
+</div>
+</blockquote>
+<p>In the previous example, we make sure that the variables are made real numbers by multiplying them by a constant 1.0. Now, this is easy and useful, but how do you save this data so you can re-use it? As we&#8217;ve seen above, a GDAL file consists of the data, a geotransform and a projection reference. Addtionally, we need to define what output format we want. So far, we have the data (the output of <tt class="docutils literal"><span class="pre">calculate_ndvi</span></tt>). We do not have the geotransform or the spatial reference, but these can probably be gleaned from the reflectance datasets. In fact, if these are different for the red and nir bands (geolocation and projection reference), then the user should be warned of this, as it is likely that the datasets are different.</p>
+<blockquote>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">save_raster</span> <span class="p">(</span> <span class="n">output_name</span><span class="p">,</span> <span class="n">raster_data</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">driver</span><span class="o">=</span><span class="s">&quot;GTiff&quot;</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A function to save a 1-band raster using GDAL to the file indicated</span>
+<span class="sd">    by ``output_name``. It requires a GDAL-accesible dataset to collect </span>
+<span class="sd">    the projection and geotransform.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># Open the reference dataset</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span> <span class="p">(</span> <span class="n">dataset</span> <span class="p">)</span>
+    <span class="c"># Get the Geotransform vector</span>
+    <span class="n">geo_transform</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">GetGeoTransform</span> <span class="p">()</span>
+    <span class="n">x_size</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">RasterXSize</span> <span class="c"># Raster xsize</span>
+    <span class="n">y_size</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">RasterYSize</span> <span class="c"># Raster ysize</span>
+    <span class="n">srs</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">GetProjectionRef</span> <span class="p">()</span> <span class="c"># Projection</span>
+    <span class="c"># Need a driver object. By default, we use GeoTIFF</span>
+    <span class="n">driver</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GetDriverByName</span> <span class="p">(</span> <span class="n">driver</span> <span class="p">)</span>
+    <span class="n">dataset_out</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">Create</span> <span class="p">(</span> <span class="n">output_name</span><span class="p">,</span> <span class="n">x_size</span><span class="p">,</span> <span class="n">y_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> \
+            <span class="n">gdal</span><span class="o">.</span><span class="n">GDT_Float32</span> <span class="p">)</span>
+    <span class="n">dataset_out</span><span class="o">.</span><span class="n">SetGeoTransform</span> <span class="p">(</span> <span class="n">geo_transform</span> <span class="p">)</span>
+    <span class="n">dataset_out</span><span class="o">.</span><span class="n">SetProjection</span> <span class="p">(</span> <span class="n">srs</span> <span class="p">)</span>
+    <span class="n">dataset_out</span><span class="o">.</span><span class="n">GetRasterBand</span> <span class="p">(</span> <span class="mi">1</span> <span class="p">)</span><span class="o">.</span><span class="n">WriteArray</span> <span class="p">(</span> \
+            <span class="n">raster_data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="p">)</span>
+    
+    
+    
+</pre></div>
+</div>
+</blockquote>
+<p>So the overall program logic is to specify the red and nir files, call <tt class="docutils literal"><span class="pre">calculate_ndvi</span></tt> and then store the result using <tt class="docutils literal"><span class="pre">save_raster</span></tt>. In the UCL system, there are time series of monthly global vegetation index data from MODIS. These datasets also provide the relevant reflectance data, so that we can calculate the index, and then compare to the official product. Rather than calculat this value globally, we&#8217;ll just subset the British Isles, and operate with virtual datasets. The main problem is that the MOD13C2 product does not have a georeference or a projection, so we shall use <tt class="docutils literal"><span class="pre">gdal_translate</span></tt> to set the limits of the original dataset, and then extract the region of interest  to a second VRT file:</p>
+<div class="highlight-python"><pre>$ gdal_translate -a_ullr -180 90 180 -90 -a_srs "EPSG:4326" -of VRT \
+'HDF4_EOS:EOS_GRID:"'\
+/data/geospatial_10/ucfajlg/MOD13C2/MOD13C2.A2005001.005.2007355115843.hdf\
+'":MOD_Grid_monthly_CMG_VI:CMG 0.05 Deg Monthly red reflectance' \
+red_2005001_global.vrt
+$ gdal_translate -projwin -15 60.5 2.5 49 -of VRT red_2005001_global.vrt \
+    red_2005001_uk.vrt
+Input file size is 7200, 3600
+Computed -srcwin 3300 590 350 230 from projected window.
+$ gdal_translate -a_ullr -180 90 180 -90 -a_srs "EPSG:4326" -of VRT \
+'HDF4_EOS:EOS_GRID:"'\
+/data/geospatial_10/ucfajlg/MOD13C2/MOD13C2.A2005001.005.2007355115843.hdf\
+'":MOD_Grid_monthly_CMG_VI:CMG 0.05 Deg Monthly NIR reflectance' \
+nir_2005001_global.vrt
+$ gdal_translate -projwin -15 60.5 2.5 49 -of VRT red_2005001_global.vrt \
+nir_2005001_uk.vrt
+Input file size is 7200, 3600
+Computed -srcwin 3300 590 350 230 from projected window.</pre>
+</div>
+<p>We now have two files, <tt class="docutils literal"><span class="pre">nir_2005001_uk.vrt</span></tt> and <tt class="docutils literal"><span class="pre">red_2005001_uk.vrt</span></tt>. We can just put the two functions above in a file and use them</p>
+<blockquote>
+<div class="highlight-python"><div class="highlight"><pre>    
+<span class="k">def</span> <span class="nf">do_plot</span> <span class="p">(</span> <span class="n">file_in</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">minval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">spectral</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A function to plot and label a raster dataset given by ``file_in``. Extra</span>
+<span class="sd">    options to choose bounds of the colourscale and the colormap to use.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span> <span class="p">(</span> <span class="n">file_in</span> <span class="p">)</span>
+    <span class="c"># Use the geotransform to </span>
+    <span class="n">geo_t</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">GetGeoTransform</span><span class="p">()</span>
+    <span class="k">print</span> <span class="s">&quot;Raster extends from</span><span class="se">\n\t</span><span class="s"> Lon: </span><span class="si">%f</span><span class="s"> to </span><span class="si">%f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span>  <span class="n">geo_t</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">geo_t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> \
+                <span class="n">geo_t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">g</span><span class="o">.</span><span class="n">RasterXSize</span> <span class="p">)</span>
+    <span class="k">print</span> <span class="s">&quot;</span><span class="se">\t</span><span class="s"> Lat: </span><span class="si">%f</span><span class="s"> to </span><span class="si">%f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span> <span class="n">geo_t</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">geo_t</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> \
+    <span class="n">geo_t</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span><span class="o">*</span><span class="n">g</span><span class="o">.</span><span class="n">RasterYSize</span> <span class="p">)</span>
+    
+    <span class="n">data</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">ReadAsArray</span> <span class="p">()</span>
+    <span class="n">cmap</span><span class="o">.</span><span class="n">set_over</span> <span class="p">(</span> <span class="s">&#39;w&#39;</span> <span class="p">)</span>
+    <span class="n">cmap</span><span class="o">.</span><span class="n">set_bad</span> <span class="p">(</span> <span class="s">&#39;k&#39;</span> <span class="p">)</span>
+    <span class="n">cmap</span><span class="o">.</span><span class="n">set_under</span> <span class="p">(</span> <span class="s">&#39;k&#39;</span> <span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span> <span class="p">(</span> <span class="n">data</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s">&#39;nearest&#39;</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span> <span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span> <span class="n">title</span> <span class="p">)</span>
+    
+    
+</pre></div>
+</div>
+<p class="rubric">Footnotes</p>
+<table class="docutils footnote" frame="void" id="f1" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td>Can you use <a class="reference external" href="http://www.gdal.org/gdaltransform.html">gdaltransform</a> to obtain the projected coordinates? Hint: the EPSG code for WGS84 Long/Lat is 4326, and you can specify the MODIS projection using the following string <tt class="docutils literal"><span class="pre">&quot;+proj=sinu</span> <span class="pre">+R=6371007.181</span> <span class="pre">+nadgrids=&#64;null</span> <span class="pre">+wktext&quot;</span></tt> instead of the <tt class="docutils literal"><span class="pre">EPSG:</span> <span class="pre">XXXX</span></tt> code.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="f2" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[2]</a></td><td>A vegetation index, such as the widely used <a class="reference external" href="http://en.wikipedia.org/wiki/Normalized_Difference_Vegetation_Index">NDVI</a> is a transformation of bands that is broadly related to vegetation amount.</td></tr>
+</tbody>
+</table>
+</blockquote>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Finding things in raster files</a><ul>
+<li><a class="reference internal" href="#the-simplest-scenario">The simplest scenario</a><ul>
+<li><a class="reference internal" href="#try-it-out-on-some-other-places">Try it out on some other places</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#reprojecting-from-python">Reprojecting from python</a><ul>
+<li><a class="reference internal" href="#some-more-examples">Some more examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#saving-data">Saving data</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="ipython.html"
+                        title="previous chapter">Starting to use Python to work with geospatial data</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="reprojection.html"
+                        title="next chapter">Reprojecting and resampling data</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/first_steps.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="reprojection.html" title="Reprojecting and resampling data"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="ipython.html" title="Starting to use Python to work with geospatial data"
+             >previous</a> |</li>
+        <li><a href="index.html">GDAL notes v0.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, J Gomez-Dans.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.1.
+    </div>
+  </body>
+</html>

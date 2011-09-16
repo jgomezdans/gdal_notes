@@ -1,0 +1,193 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Reprojecting and resampling data &mdash; GDAL notes v0.0 documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="GDAL notes v0.0 documentation" href="index.html" />
+    <link rel="prev" title="Finding things in raster files" href="first_steps.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="first_steps.html" title="Finding things in raster files"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">GDAL notes v0.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="reprojecting-and-resampling-data">
+<h1>Reprojecting and resampling data<a class="headerlink" href="#reprojecting-and-resampling-data" title="Permalink to this headline">¶</a></h1>
+<p>The previous section demonstrated how to save raster data. However, in many cases, there&#8217;s a need to reproject and resample this data. A pragmtic solution would use <a class="reference external" href="http://www.gdal.org/gdalwarp.html">gdalwarp</a> and do this on the shell. On the one hand, this is convenient, but sometimes, you need to perform this task as a intermediate step, and creating and deleting files is tedious and error-prone. Ideally, you would have a python function that would perform the projection for you. GDAL allows this by defining <em>in-memory raster files</em>. These are normal GDAL datasets, but that don&#8217;t exist on the filesystem, only in the computer&#8217;s memory. They are a convenient &#8220;scratchpad&#8221; for quick intermediate calculations. GDAL also makes available a function, <tt class="docutils literal"><span class="pre">gdal.ReprojectImage</span></tt> that exposes most of the abilities of gdalwarp. We shall combine these two tricks to carry out the reprojection. As an example, we shall look at the case where the NDVI data for the British Isles mentioned in the previous section needs to be reprojected to the Ordnance Survey National Grid, an appropriate projection for the UK.</p>
+<p>The main complication comes from the need of <tt class="docutils literal"><span class="pre">gdal.ReprojectImage</span></tt> to operate on GDAL datasets. In the previous section, we saved the NDVI data to a GeoTIFF file, so this gives us a starting dataset. We still need to create the output dataset. This means that we need to define the geotransform and size of the output dataset before the projection is made. This entails gathering information on the extent of the original dataset, projecting it to the destination projection, and calculating the number of pixels and geotransform parameters from there. This is a (heavily commented) function that performs just that task:</p>
+<blockquote>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">reproject_dataset</span> <span class="p">(</span> <span class="n">dataset</span><span class="p">,</span> \
+            <span class="n">pixel_spacing</span><span class="o">=</span><span class="mf">5000.</span><span class="p">,</span> <span class="n">epsg_from</span><span class="o">=</span><span class="mi">4326</span><span class="p">,</span> <span class="n">epsg_to</span><span class="o">=</span><span class="mi">27700</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A sample function to reproject and resample a GDAL dataset from within </span>
+<span class="sd">    Python. The idea here is to reproject from one system to another, as well</span>
+<span class="sd">    as to change the pixel size. The procedure is slightly long-winded, but</span>
+<span class="sd">    goes like this:</span>
+<span class="sd">    </span>
+<span class="sd">    1. Set up the two Spatial Reference systems.</span>
+<span class="sd">    2. Open the original dataset, and get the geotransform</span>
+<span class="sd">    3. Calculate bounds of new geotransform by projecting the UL corners </span>
+<span class="sd">    4. Calculate the number of pixels with the new projection &amp; spacing</span>
+<span class="sd">    5. Create an in-memory raster dataset</span>
+<span class="sd">    6. Perform the projection</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># Define the UK OSNG, see &lt;http://spatialreference.org/ref/epsg/27700/&gt;</span>
+    <span class="n">osng</span> <span class="o">=</span> <span class="n">osr</span><span class="o">.</span><span class="n">SpatialReference</span> <span class="p">()</span>
+    <span class="n">osng</span><span class="o">.</span><span class="n">ImportFromEPSG</span> <span class="p">(</span> <span class="n">epsg_to</span> <span class="p">)</span>
+    <span class="n">wgs84</span> <span class="o">=</span> <span class="n">osr</span><span class="o">.</span><span class="n">SpatialReference</span> <span class="p">()</span>
+    <span class="n">wgs84</span><span class="o">.</span><span class="n">ImportFromEPSG</span> <span class="p">(</span> <span class="n">epsg_from</span> <span class="p">)</span>
+    <span class="n">tx</span> <span class="o">=</span> <span class="n">osr</span><span class="o">.</span><span class="n">CoordinateTransformation</span> <span class="p">(</span> <span class="n">wgs84</span><span class="p">,</span> <span class="n">osng</span> <span class="p">)</span>
+    <span class="c"># Up to here, all  the projection have been defined, as well as a </span>
+    <span class="c"># transformation from the from to the  to :)</span>
+    <span class="c"># We now open the dataset</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span> <span class="p">(</span> <span class="n">dataset</span> <span class="p">)</span>
+    <span class="c"># Get the Geotransform vector</span>
+    <span class="n">geo_t</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">GetGeoTransform</span> <span class="p">()</span>
+    <span class="n">x_size</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">RasterXSize</span> <span class="c"># Raster xsize</span>
+    <span class="n">y_size</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">RasterYSize</span> <span class="c"># Raster ysize</span>
+    <span class="c"># Work out the boundaries of the new dataset in the target projection</span>
+    <span class="p">(</span><span class="n">ulx</span><span class="p">,</span> <span class="n">uly</span><span class="p">,</span> <span class="n">ulz</span> <span class="p">)</span> <span class="o">=</span> <span class="n">tx</span><span class="o">.</span><span class="n">TransformPoint</span><span class="p">(</span> <span class="n">geo_t</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">geo_t</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+    <span class="p">(</span><span class="n">lrx</span><span class="p">,</span> <span class="n">lry</span><span class="p">,</span> <span class="n">lrz</span> <span class="p">)</span> <span class="o">=</span> <span class="n">tx</span><span class="o">.</span><span class="n">TransformPoint</span><span class="p">(</span> <span class="n">geo_t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">geo_t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">x_size</span><span class="p">,</span> \
+                                          <span class="n">geo_t</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="n">geo_t</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span><span class="o">*</span><span class="n">y_size</span> <span class="p">)</span>
+    <span class="c"># See how using 27700 and WGS84 introduces a z-value!</span>
+    <span class="c"># Now, we create an in-memory raster</span>
+    <span class="n">mem_drv</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GetDriverByName</span><span class="p">(</span> <span class="s">&#39;MEM&#39;</span> <span class="p">)</span>
+    <span class="c"># The size of the raster is given the new projection and pixel spacing</span>
+    <span class="c"># Using the values we calculated above. Also, setting it to store one band</span>
+    <span class="c"># and to use Float32 data type.</span>
+    <span class="n">dest</span> <span class="o">=</span> <span class="n">mem_drv</span><span class="o">.</span><span class="n">Create</span><span class="p">(</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">((</span><span class="n">lrx</span> <span class="o">-</span> <span class="n">ulx</span><span class="p">)</span><span class="o">/</span><span class="n">pixel_spacing</span><span class="p">),</span> \
+            <span class="nb">int</span><span class="p">((</span><span class="n">uly</span> <span class="o">-</span> <span class="n">lry</span><span class="p">)</span><span class="o">/</span><span class="n">pixel_spacing</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GDT_Float32</span><span class="p">)</span>
+    <span class="c"># Calculate the new geotransform</span>
+    <span class="n">new_geo</span> <span class="o">=</span> <span class="p">(</span> <span class="n">ulx</span><span class="p">,</span> <span class="n">pixel_spacing</span><span class="p">,</span> <span class="n">geo_t</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> \
+                <span class="n">uly</span><span class="p">,</span> <span class="n">geo_t</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="o">-</span><span class="n">pixel_spacing</span> <span class="p">)</span>
+    <span class="c"># Set the geotransform</span>
+    <span class="n">dest</span><span class="o">.</span><span class="n">SetGeoTransform</span><span class="p">(</span> <span class="n">new_geo</span> <span class="p">)</span>
+    <span class="n">dest</span><span class="o">.</span><span class="n">SetProjection</span> <span class="p">(</span> <span class="n">osng</span><span class="o">.</span><span class="n">ExportToWkt</span><span class="p">()</span> <span class="p">)</span>
+    <span class="c"># Perform the projection/resampling </span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">ReprojectImage</span><span class="p">(</span> <span class="n">g</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> \
+                <span class="n">wgs84</span><span class="o">.</span><span class="n">ExportToWkt</span><span class="p">(),</span> <span class="n">osng</span><span class="o">.</span><span class="n">ExportToWkt</span><span class="p">(),</span> \
+                <span class="n">gdal</span><span class="o">.</span><span class="n">GRA_Bilinear</span> <span class="p">)</span>
+    <span class="k">return</span> <span class="n">dest</span>
+    
+</pre></div>
+</div>
+</blockquote>
+<p>The function returns a GDAL in-memory file object, where you can <tt class="docutils literal"><span class="pre">ReadAsArray</span></tt> etc. As it stands, <tt class="docutils literal"><span class="pre">reproject_dataset</span></tt> does not write to disk. However, we can save the in-memory raster to any format supported by GDAL very conveniently by making a copy of the dataset. This literally takes two lines of code.</p>
+<p>We expand the main part of the program to (i) save the result of the reprojection as a GeoTIFF file, (ii) read the resulting datafile and (iii) plot it:</p>
+<blockquote>
+<div class="highlight-python"><pre>if __name__ == "__main__":
+    red_filename = "red_2005001_uk.vrt"
+    nir_filename = "nir_2005001_uk.vrt"
+    
+    ndvi = calculate_ndvi ( red_filename, nir_filename )
+    save_raster ( "./ndvi.tif", ndvi, red_filename )
+    # Data is now produced and saved. We can try to open the file and read it
+    fig = plt.figure( figsize=(8.3,5.8 ))
+    plt.subplot( 1,2,1 )
+    do_plot ( "ndvi.tif", "NDVI/WGS84" )
+    plt.subplot( 1,2,2 )
+    # Now, reproject and resample the NDVI dataset
+    reprojected_dataset = reproject_dataset ( "ndvi.tif" )
+    # This is a GDAL object. We can read it
+    reprojected_data = reprojected_dataset.ReadAsArray ()
+    # Let's save it as a GeoTIFF.
+    driver = gdal.GetDriverByName ( "GTiff" )
+    dst_ds = driver.CreateCopy( "./ndvi_osng.tif", reprojected_dataset, 0 )
+    dst_ds = None # Flush the dataset to disk
+    # Data is now saved. We can try to open the file and read it
+    do_plot ( "ndvi_osng.tif", "NDVI/OSNG" )
+    cax = fig.add_axes([0.05, 0.8, 0.95, 0.05])
+    cbase = matplotlib.colorbar.ColorbarBase( cax, cmap=plt.cm.spectral, \
+        norm=matplotlib.colors.normalize(0,0.95), orientation='horizontal', \
+</pre>
+</div>
+</blockquote>
+<p>The result of running the whole script is shown below</p>
+<blockquote>
+<div class="figure">
+<a class="reference internal image-reference" href="_images/fig_5.png"><img alt="_images/fig_5.png" src="_images/fig_5.png" style="width: 622.5px; height: 435.0px;" /></a>
+</div>
+</blockquote>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="first_steps.html"
+                        title="previous chapter">Finding things in raster files</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/reprojection.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="first_steps.html" title="Finding things in raster files"
+             >previous</a> |</li>
+        <li><a href="index.html">GDAL notes v0.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, J Gomez-Dans.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.1.
+    </div>
+  </body>
+</html>
