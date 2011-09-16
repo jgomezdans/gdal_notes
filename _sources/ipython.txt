@@ -312,6 +312,7 @@ We expand the main part of the program to (i) save the result of the reprojectio
 The result of running the whole script is  
 
     .. figure:: fig_5.*
+        :scale: 50
     
     
 .. rubric:: Footnotes
