@@ -1,0 +1,3 @@
+[submodule "build/html"]
+	path = build/html
+	url = git@github.com:jgomezdans/gdal_notes.git
