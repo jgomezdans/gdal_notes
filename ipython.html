@@ -570,35 +570,35 @@ Computed -srcwin 3300 590 350 230 from projected window.</pre>
 </div>
 <p>We now have two files, <tt class="docutils literal"><span class="pre">nir_2005001_uk.vrt</span></tt> and <tt class="docutils literal"><span class="pre">red_2005001_uk.vrt</span></tt>. We can just put the two functions above in a file and use them</p>
 <blockquote>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
-    <span class="n">red_filename</span> <span class="o">=</span> <span class="s">&quot;red_2005001_uk.vrt&quot;</span>
-    <span class="n">nir_filename</span> <span class="o">=</span> <span class="s">&quot;nir_2005001_uk.vrt&quot;</span>
-    
-    <span class="n">ndvi</span> <span class="o">=</span> <span class="n">calculate_ndvi</span> <span class="p">(</span> <span class="n">red_filename</span><span class="p">,</span> <span class="n">nir_filename</span> <span class="p">)</span>
-    <span class="n">save_raster</span> <span class="p">(</span> <span class="s">&quot;./ndvi.tif&quot;</span><span class="p">,</span> <span class="n">ndvi</span><span class="p">,</span> <span class="n">red_filename</span> <span class="p">)</span>
-    <span class="c"># Data is now produced and saved. We can try to open the file and read it</span>
-    <span class="n">g</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span> <span class="p">(</span> <span class="s">&quot;ndvi.tif&quot;</span> <span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre>    
+<span class="k">def</span> <span class="nf">do_plot</span> <span class="p">(</span> <span class="n">file_in</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">minval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">spectral</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A function to plot and label a raster dataset given by ``file_in``. Extra</span>
+<span class="sd">    options to choose bounds of the colourscale and the colormap to use.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span> <span class="p">(</span> <span class="n">file_in</span> <span class="p">)</span>
     <span class="c"># Use the geotransform to </span>
     <span class="n">geo_t</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">GetGeoTransform</span><span class="p">()</span>
     <span class="k">print</span> <span class="s">&quot;Raster extends from</span><span class="se">\n\t</span><span class="s"> Lon: </span><span class="si">%f</span><span class="s"> to </span><span class="si">%f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span>  <span class="n">geo_t</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">geo_t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> \
                 <span class="n">geo_t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">g</span><span class="o">.</span><span class="n">RasterXSize</span> <span class="p">)</span>
     <span class="k">print</span> <span class="s">&quot;</span><span class="se">\t</span><span class="s"> Lat: </span><span class="si">%f</span><span class="s"> to </span><span class="si">%f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span> <span class="n">geo_t</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">geo_t</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> \
-                <span class="n">geo_t</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span><span class="o">*</span><span class="n">g</span><span class="o">.</span><span class="n">RasterYSize</span> <span class="p">)</span>
+    <span class="n">geo_t</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span><span class="o">*</span><span class="n">g</span><span class="o">.</span><span class="n">RasterYSize</span> <span class="p">)</span>
     
     <span class="n">data</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">ReadAsArray</span> <span class="p">()</span>
-    <span class="n">cmap</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">spectral</span>
     <span class="n">cmap</span><span class="o">.</span><span class="n">set_over</span> <span class="p">(</span> <span class="s">&#39;w&#39;</span> <span class="p">)</span>
     <span class="n">cmap</span><span class="o">.</span><span class="n">set_bad</span> <span class="p">(</span> <span class="s">&#39;k&#39;</span> <span class="p">)</span>
     <span class="n">cmap</span><span class="o">.</span><span class="n">set_under</span> <span class="p">(</span> <span class="s">&#39;k&#39;</span> <span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span> <span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span> <span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span> <span class="p">(</span> <span class="n">data</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s">&#39;nearest&#39;</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span> <span class="p">(</span> <span class="n">data</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s">&#39;nearest&#39;</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span> <span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span> <span class="n">title</span> <span class="p">)</span>
+    
+    
 </pre></div>
 </div>
 </blockquote>
 </div>
 <div class="section" id="reprojecting-and-resampling-data">
 <h2>Reprojecting and resampling data<a class="headerlink" href="#reprojecting-and-resampling-data" title="Permalink to this headline">¶</a></h2>
-<p>The previous section demonstrated how to save raster data. However, in many cases, there&#8217;s a need to reproject and resample this data. A pragmtic solution would use <cite>gdalwarp &lt;http://www.gdal.org/gdalwarp.html&gt;&#8217;_ and do this on the shell. On the one hand, this is convenient, but sometimes, you need to perform this task as a intermediate step, and creating and deleting files is tedious and error-prone. Ideally, you would have a python function that would perform the projection for you. GDAL allows this by defining *in-memory raster files*. These are normal GDAL datasets, but that don&#8217;t exist on the filesystem, only in the computer&#8217;s memory. They are a convenient &#8220;scratchpad&#8221; for quick intermediate calculations. GDAL also makes available a function, ``gdal.ReprojectImage`</cite> that exposes most of the abilities of gdalwarp. We shall combine these two tricks to carry out the reprojection.</p>
+<p>The previous section demonstrated how to save raster data. However, in many cases, there&#8217;s a need to reproject and resample this data. A pragmtic solution would use <a class="reference external" href="http://www.gdal.org/gdalwarp.html">gdalwarp</a> and do this on the shell. On the one hand, this is convenient, but sometimes, you need to perform this task as a intermediate step, and creating and deleting files is tedious and error-prone. Ideally, you would have a python function that would perform the projection for you. GDAL allows this by defining <em>in-memory raster files</em>. These are normal GDAL datasets, but that don&#8217;t exist on the filesystem, only in the computer&#8217;s memory. They are a convenient &#8220;scratchpad&#8221; for quick intermediate calculations. GDAL also makes available a function, <tt class="docutils literal"><span class="pre">gdal.ReprojectImage</span></tt> that exposes most of the abilities of gdalwarp. We shall combine these two tricks to carry out the reprojection.</p>
 <p>The main complication comes from the need of <tt class="docutils literal"><span class="pre">gdal.ReprojectImage</span></tt> to operate on GDAL datasets. In the previous section, we saved the NDVI data to a GeoTIFF file, so this gives us a starting dataset. We still need to create the output dataset. This means that we need to define the geotransform and size of the output dataset before the projection is made. This entails gathering information on the extent of the original dataset, projecting it to the destination projection, and calculating the number of pixels and geotransform parameters from there. This is a (heavily commented) function that performs just that task:</p>
 <blockquote>
 <div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">reproject_dataset</span> <span class="p">(</span> <span class="n">dataset</span><span class="p">,</span> \
@@ -660,30 +660,31 @@ Computed -srcwin 3300 590 350 230 from projected window.</pre>
 <p>The function returns a GDAL in-memory file object, where you can <tt class="docutils literal"><span class="pre">ReadAsArray</span></tt> etc. As it stands, <tt class="docutils literal"><span class="pre">reproject_dataset</span></tt> does not write to disk. However, we can save the in-memory raster to any format supported by GDAL very conveniently by making a copy of the dataset. This literally takes two lines of code.</p>
 <p>We expand the main part of the program to (i) save the result of the reprojection as a GeoTIFF file, (ii) read the resulting datafile and (iii) plot it:</p>
 <blockquote>
-<div class="highlight-python"><div class="highlight"><pre>    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&quot;WGS84&quot;</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span> <span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span> <span class="p">)</span>
-    <span class="c"># Now, reproject and resample the NDVI dataset</span>
-    <span class="n">reprojected_dataset</span> <span class="o">=</span> <span class="n">reproject_dataset</span> <span class="p">(</span> <span class="s">&quot;ndvi.tif&quot;</span> <span class="p">)</span>
-    <span class="c"># This is a GDAL object. We can read it</span>
-    <span class="n">reprojected_data</span> <span class="o">=</span> <span class="n">reprojected_dataset</span><span class="o">.</span><span class="n">ReadAsArray</span> <span class="p">()</span>
-    <span class="c"># Let&#39;s save it as a GeoTIFF.</span>
-    <span class="n">driver</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GetDriverByName</span> <span class="p">(</span> <span class="s">&quot;GTiff&quot;</span> <span class="p">)</span>
-    <span class="n">dst_ds</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">CreateCopy</span><span class="p">(</span> <span class="s">&quot;./ndvi_osng.tif&quot;</span><span class="p">,</span> <span class="n">reprojected_dataset</span><span class="p">,</span> <span class="mi">0</span> <span class="p">)</span>
-    <span class="n">dst_ds</span> <span class="o">=</span> <span class="bp">None</span> <span class="c"># Flush the dataset to disk</span>
-    <span class="c"># Data is now saved. We can try to open the file and read it</span>
-    <span class="n">g</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span> <span class="p">(</span> <span class="s">&quot;ndvi_osng.tif&quot;</span> <span class="p">)</span>
-    <span class="c"># Use the geotransform to </span>
-    <span class="n">geo_t</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">GetGeoTransform</span><span class="p">()</span>
-    <span class="k">print</span> <span class="s">&quot;Raster extends from</span><span class="se">\n\t</span><span class="s"> Lon: </span><span class="si">%f</span><span class="s"> to </span><span class="si">%f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span>  <span class="n">geo_t</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">geo_t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> \
-        <span class="n">geo_t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">g</span><span class="o">.</span><span class="n">RasterXSize</span> <span class="p">)</span>
-    <span class="k">print</span> <span class="s">&quot;</span><span class="se">\t</span><span class="s"> Lat: </span><span class="si">%f</span><span class="s"> to </span><span class="si">%f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span> <span class="n">geo_t</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">geo_t</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> \
-        <span class="n">geo_t</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span><span class="o">*</span><span class="n">g</span><span class="o">.</span><span class="n">RasterYSize</span> <span class="p">)</span>
+<div class="highlight-python"><pre>if __name__ == "__main__":
+    red_filename = "red_2005001_uk.vrt"
+    nir_filename = "nir_2005001_uk.vrt"
     
-    <span class="n">data</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">ReadAsArray</span> <span class="p">()</span>
-    <span class="n">cmap</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">spectral</span>
-    <span class="n">cmap</span><span class="o">.</span><span class="n">set_over</span> <span class="p">(</span> <span class="s">&#39;w&#39;</span> <span class="p">)</span>
-    <span class="n">cmap</span><span class="o">.</span><span class="n">set_bad</span> <span class="p">(</span> <span class="s">&#39;k&#39;</span> <span class="p">)</span>
-</pre></div>
+    ndvi = calculate_ndvi ( red_filename, nir_filename )
+    save_raster ( "./ndvi.tif", ndvi, red_filename )
+    # Data is now produced and saved. We can try to open the file and read it
+    fig = plt.figure( figsize=(8.3,5.8 ))
+    plt.subplot( 1,2,1 )
+    do_plot ( "ndvi.tif", "NDVI/WGS84" )
+    plt.subplot( 1,2,2 )
+    # Now, reproject and resample the NDVI dataset
+    reprojected_dataset = reproject_dataset ( "ndvi.tif" )
+    # This is a GDAL object. We can read it
+    reprojected_data = reprojected_dataset.ReadAsArray ()
+    # Let's save it as a GeoTIFF.
+    driver = gdal.GetDriverByName ( "GTiff" )
+    dst_ds = driver.CreateCopy( "./ndvi_osng.tif", reprojected_dataset, 0 )
+    dst_ds = None # Flush the dataset to disk
+    # Data is now saved. We can try to open the file and read it
+    do_plot ( "ndvi_osng.tif", "NDVI/OSNG" )
+    cax = fig.add_axes([0.05, 0.8, 0.95, 0.05])
+    cbase = matplotlib.colorbar.ColorbarBase( cax, cmap=plt.cm.spectral, \
+        norm=matplotlib.colors.normalize(0,0.95), orientation='horizontal', \
+</pre>
 </div>
 </blockquote>
 <p>The result of running the whole script is</p>
