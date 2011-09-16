@@ -45,6 +45,8 @@
             
   <div class="section" id="reprojecting-and-resampling-data">
 <h1>Reprojecting and resampling data<a class="headerlink" href="#reprojecting-and-resampling-data" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="a-common-problem">
+<h2>A common problem<a class="headerlink" href="#a-common-problem" title="Permalink to this headline">¶</a></h2>
 <p>The previous section demonstrated how to save raster data. However, in many cases, there&#8217;s a need to reproject and resample this data. A pragmtic solution would use <a class="reference external" href="http://www.gdal.org/gdalwarp.html">gdalwarp</a> and do this on the shell. On the one hand, this is convenient, but sometimes, you need to perform this task as a intermediate step, and creating and deleting files is tedious and error-prone. Ideally, you would have a python function that would perform the projection for you. GDAL allows this by defining <em>in-memory raster files</em>. These are normal GDAL datasets, but that don&#8217;t exist on the filesystem, only in the computer&#8217;s memory. They are a convenient &#8220;scratchpad&#8221; for quick intermediate calculations. GDAL also makes available a function, <tt class="docutils literal"><span class="pre">gdal.ReprojectImage</span></tt> that exposes most of the abilities of gdalwarp. We shall combine these two tricks to carry out the reprojection. As an example, we shall look at the case where the NDVI data for the British Isles mentioned in the previous section needs to be reprojected to the Ordnance Survey National Grid, an appropriate projection for the UK.</p>
 <p>The main complication comes from the need of <tt class="docutils literal"><span class="pre">gdal.ReprojectImage</span></tt> to operate on GDAL datasets. In the previous section, we saved the NDVI data to a GeoTIFF file, so this gives us a starting dataset. We still need to create the output dataset. This means that we need to define the geotransform and size of the output dataset before the projection is made. This entails gathering information on the extent of the original dataset, projecting it to the destination projection, and calculating the number of pixels and geotransform parameters from there. This is a (heavily commented) function that performs just that task:</p>
 <blockquote>
@@ -140,6 +142,16 @@
 <a class="reference internal image-reference" href="_images/fig_5.png"><img alt="_images/fig_5.png" src="_images/fig_5.png" style="width: 622.5px; height: 435.0px;" /></a>
 </div>
 </blockquote>
+<div class="section" id="try-it-out">
+<h3>Try it out<a class="headerlink" href="#try-it-out" title="Permalink to this headline">¶</a></h3>
+<ol class="arabic simple">
+<li>Compare the produced NDVI with the official one in the HDF product (extract the area of interest to a VRT file).</li>
+<li>Have a look at the QA flags (you may find <a class="reference external" href="http://gis.cri.fmach.it/modis-ndvi-evi/">this table</a> useful). Antyhing interesting?</li>
+<li>In the NDVI directory there&#8217;s NDVI data for a whole year. Can you plot an annual series of NDVI?</li>
+<li>The NDVI HDF files also have a blue band, that you can use to calculate the EVI (Enhanced Vegetation Index). The formula for this is index <a class="reference external" href="http://en.wikipedia.org/wiki/EVI">can be found here</a>. Repeat the above exercise with the EVI, and compare EVI and NDVI results.</li>
+</ol>
+</div>
+</div>
 </div>
 
 
@@ -148,6 +160,17 @@
       </div>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Reprojecting and resampling data</a><ul>
+<li><a class="reference internal" href="#a-common-problem">A common problem</a><ul>
+<li><a class="reference internal" href="#try-it-out">Try it out</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
   <h4>Previous topic</h4>
   <p class="topless"><a href="first_steps.html"
                         title="previous chapter">Finding things in raster files</a></p>
