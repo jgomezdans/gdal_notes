@@ -173,10 +173,11 @@
 </div>
 </blockquote>
 </div>
-<div class="section" id="finding-things">
-<h2>Finding things<a class="headerlink" href="#finding-things" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="finding-things-in-raster-files">
+<h1>Finding things in raster files<a class="headerlink" href="#finding-things-in-raster-files" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="the-simplest-scenario">
-<h3>The simplest scenario<a class="headerlink" href="#the-simplest-scenario" title="Permalink to this headline">¶</a></h3>
+<h2>The simplest scenario<a class="headerlink" href="#the-simplest-scenario" title="Permalink to this headline">¶</a></h2>
 <p>The simplest scenario is to find a pixel when we know the coordinates of that pixel in the same projection as the geospatial dataset. This is farily common when working with high resolution data, usually in UTM coordinates, or when working with unprojected global datasets on a longitude/latitude grid. To find the pixel locations of coordinates, we need to use the geotransform. Assume we are interested in locating <a class="reference external" href="http://toolserver.org/~rhaworth/os/coor_g.php?pagename=Kinder_Scout&amp;params=SK086875_region%3AGB_scale%3A25000">Kinder Scout</a>, a moorland in the Peak District National Park. Its coordinates are  1.871417W, 53.384726N. In the MODIS integerised sinusoidal projection, the coordinates <a class="footnote-reference" href="#f1" id="id1">[1]</a> are (-124114.3, 5936117.4). Let&#8217;s calculate what pixel location is that, and plot a callbox in our map</p>
 <blockquote>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [50]: </span><span class="n">geot</span> <span class="o">=</span> <span class="n">lc_data</span><span class="o">.</span><span class="n">GetGeoTransform</span><span class="p">()</span>
@@ -224,7 +225,7 @@
 </div>
 </blockquote>
 <div class="section" id="try-it-out-on-some-other-places">
-<h4>Try it out on some other places<a class="headerlink" href="#try-it-out-on-some-other-places" title="Permalink to this headline">¶</a></h4>
+<h3>Try it out on some other places<a class="headerlink" href="#try-it-out-on-some-other-places" title="Permalink to this headline">¶</a></h3>
 <p>Find the longitude and latitude of some places of interest in the British isles (West of Greenwich!) and using the <a class="reference external" href="http://landweb.nascom.nasa.gov/cgi-bin/developer/tilemap.cgi">MODLAND MODIS tile calculator</a> and the geotransform, repeat the above experiment. Note that the MODIS calculator calculates both the projected coordinates in the MODIS sinusoidal projection, as well as the pixel number, so it is a helpful way to check whether you got the right result.</p>
 <blockquote>
 <table border="1" class="docutils">
@@ -322,7 +323,7 @@
 </div>
 </div>
 <div class="section" id="reprojecting-from-python">
-<h3>Reprojecting from python<a class="headerlink" href="#reprojecting-from-python" title="Permalink to this headline">¶</a></h3>
+<h2>Reprojecting from python<a class="headerlink" href="#reprojecting-from-python" title="Permalink to this headline">¶</a></h2>
 <p>The most general situation is that the points of interest and the geospatial dataset have different projections. For example, GPS receivers often quote WGS84 coordinates (and so does Google maps!). We shall see how to use GDAL to project data. The basics of this require the import of the <tt class="docutils literal"><span class="pre">osr</span></tt> module, and defining two SpatialReference object, one for the <em>source</em> projection and one for the <em>destination</em> projection. In GDAL, there are many different ways of defining projections. We&#8217;ve seen the EPSG codes, but we can also use the widely availabe Proj4 format, WKT, ESRI, etc. You can use <a class="reference external" href="http://spatialreference.org">spatialreference.org</a> to conveniently search for projections in a multitude of GDAL-useable formats. Once the projections are in place, one needs to define a <tt class="docutils literal"><span class="pre">CoordinateTransformation</span></tt> object. This object takes the two projection objects, and will have a method called <tt class="docutils literal"><span class="pre">TransformPoint</span></tt> that will transform a set of coordinates for you.</p>
 <p>Let&#8217;s demonstrate these concepts with a script. This script first sets up the WGS84 and MODIS sinusoidal projections. It uses them to create a <tt class="docutils literal"><span class="pre">CoordinateTransformation</span></tt> object. Once this is done, it loops over the table presented above, extracts the longitude and latitude, and feeds these to the transformation method. Note that this method returns three numbers <em>(x,y,z)</em>, as there could be a shift of height by changing the geoid or the datum.</p>
 <blockquote>
@@ -489,12 +490,11 @@ Exmoor national park -3.651 51.14 -254715.497137 5686514.95809
 [...]</pre>
 </div>
 <div class="section" id="some-more-examples">
-<h4>Some more examples<a class="headerlink" href="#some-more-examples" title="Permalink to this headline">¶</a></h4>
+<h3>Some more examples<a class="headerlink" href="#some-more-examples" title="Permalink to this headline">¶</a></h3>
 <ol class="arabic simple">
 <li>Modify the script above, try convert the location of the national parks and plot them eg as a circle to the MODIS land cover image. Think about how you deal with parks that may be outside the area covered by the image.</li>
 <li>Try to convert the WGS84 data into a different coordinate system, and then convert these new coordinates back into WGS84.</li>
 </ol>
-</div>
 </div>
 </div>
 <div class="section" id="saving-data">
@@ -596,8 +596,9 @@ Computed -srcwin 3300 590 350 230 from projected window.</pre>
 </div>
 </blockquote>
 </div>
+</div>
 <div class="section" id="reprojecting-and-resampling-data">
-<h2>Reprojecting and resampling data<a class="headerlink" href="#reprojecting-and-resampling-data" title="Permalink to this headline">¶</a></h2>
+<h1>Reprojecting and resampling data<a class="headerlink" href="#reprojecting-and-resampling-data" title="Permalink to this headline">¶</a></h1>
 <p>The previous section demonstrated how to save raster data. However, in many cases, there&#8217;s a need to reproject and resample this data. A pragmtic solution would use <a class="reference external" href="http://www.gdal.org/gdalwarp.html">gdalwarp</a> and do this on the shell. On the one hand, this is convenient, but sometimes, you need to perform this task as a intermediate step, and creating and deleting files is tedious and error-prone. Ideally, you would have a python function that would perform the projection for you. GDAL allows this by defining <em>in-memory raster files</em>. These are normal GDAL datasets, but that don&#8217;t exist on the filesystem, only in the computer&#8217;s memory. They are a convenient &#8220;scratchpad&#8221; for quick intermediate calculations. GDAL also makes available a function, <tt class="docutils literal"><span class="pre">gdal.ReprojectImage</span></tt> that exposes most of the abilities of gdalwarp. We shall combine these two tricks to carry out the reprojection. As an example, we shall look at the case where the NDVI data for the British Isles mentioned in the previous section needs to be reprojected to the Ordnance Survey National Grid, an appropriate projection for the UK.</p>
 <p>The main complication comes from the need of <tt class="docutils literal"><span class="pre">gdal.ReprojectImage</span></tt> to operate on GDAL datasets. In the previous section, we saved the NDVI data to a GeoTIFF file, so this gives us a starting dataset. We still need to create the output dataset. This means that we need to define the geotransform and size of the output dataset before the projection is made. This entails gathering information on the extent of the original dataset, projecting it to the destination projection, and calculating the number of pixels and geotransform parameters from there. This is a (heavily commented) function that performs just that task:</p>
 <blockquote>
@@ -687,7 +688,7 @@ Computed -srcwin 3300 590 350 230 from projected window.</pre>
 </pre>
 </div>
 </blockquote>
-<p>The result of running the whole script is</p>
+<p>The result of running the whole script is shown below</p>
 <blockquote>
 <div class="figure">
 <a class="reference internal image-reference" href="_images/fig_5.png"><img alt="_images/fig_5.png" src="_images/fig_5.png" style="width: 622.5px; height: 435.0px;" /></a>
@@ -707,7 +708,6 @@ Computed -srcwin 3300 590 350 230 from projected window.</pre>
 </tbody>
 </table>
 </div>
-</div>
 
 
           </div>
@@ -719,7 +719,9 @@ Computed -srcwin 3300 590 350 230 from projected window.</pre>
   <ul>
 <li><a class="reference internal" href="#">Starting to use Python to work with geospatial data</a><ul>
 <li><a class="reference internal" href="#plotting-the-data">Plotting the data</a></li>
-<li><a class="reference internal" href="#finding-things">Finding things</a><ul>
+</ul>
+</li>
+<li><a class="reference internal" href="#finding-things-in-raster-files">Finding things in raster files</a><ul>
 <li><a class="reference internal" href="#the-simplest-scenario">The simplest scenario</a><ul>
 <li><a class="reference internal" href="#try-it-out-on-some-other-places">Try it out on some other places</a></li>
 </ul>
@@ -728,12 +730,10 @@ Computed -srcwin 3300 590 350 230 from projected window.</pre>
 <li><a class="reference internal" href="#some-more-examples">Some more examples</a></li>
 </ul>
 </li>
-</ul>
-</li>
 <li><a class="reference internal" href="#saving-data">Saving data</a></li>
-<li><a class="reference internal" href="#reprojecting-and-resampling-data">Reprojecting and resampling data</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#reprojecting-and-resampling-data">Reprojecting and resampling data</a></li>
 </ul>
 
   <h4>Previous topic</h4>

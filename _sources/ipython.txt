@@ -137,12 +137,12 @@ The previous code snippet uses `imshow <http://matplotlib.sourceforge.net/api/py
 
     .. figure:: fig_1.*
     
-    
-Finding things
-----------------
+************************************    
+Finding things in raster files
+************************************
 
 The simplest scenario
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------
 
 The simplest scenario is to find a pixel when we know the coordinates of that pixel in the same projection as the geospatial dataset. This is farily common when working with high resolution data, usually in UTM coordinates, or when working with unprojected global datasets on a longitude/latitude grid. To find the pixel locations of coordinates, we need to use the geotransform. Assume we are interested in locating `Kinder Scout <http://toolserver.org/~rhaworth/os/coor_g.php?pagename=Kinder_Scout&params=SK086875_region%3AGB_scale%3A25000>`_, a moorland in the Peak District National Park. Its coordinates are  1.871417W, 53.384726N. In the MODIS integerised sinusoidal projection, the coordinates [#f1]_ are (-124114.3, 5936117.4). Let's calculate what pixel location is that, and plot a callbox in our map
     
@@ -191,7 +191,7 @@ The last line that annotates the location of Kinder Scout is quite convoluted (s
         
         
 Try it out on some other places
-""""""""""""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Find the longitude and latitude of some places of interest in the British isles (West of Greenwich!) and using the `MODLAND MODIS tile calculator <http://landweb.nascom.nasa.gov/cgi-bin/developer/tilemap.cgi>`_ and the geotransform, repeat the above experiment. Note that the MODIS calculator calculates both the projected coordinates in the MODIS sinusoidal projection, as well as the pixel number, so it is a helpful way to check whether you got the right result.
 
@@ -221,7 +221,7 @@ Find the longitude and latitude of some places of interest in the British isles 
 
 
 Reprojecting from python
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------
 
 The most general situation is that the points of interest and the geospatial dataset have different projections. For example, GPS receivers often quote WGS84 coordinates (and so does Google maps!). We shall see how to use GDAL to project data. The basics of this require the import of the ``osr`` module, and defining two SpatialReference object, one for the *source* projection and one for the *destination* projection. In GDAL, there are many different ways of defining projections. We've seen the EPSG codes, but we can also use the widely availabe Proj4 format, WKT, ESRI, etc. You can use `spatialreference.org <http://spatialreference.org>`_ to conveniently search for projections in a multitude of GDAL-useable formats. Once the projections are in place, one needs to define a ``CoordinateTransformation`` object. This object takes the two projection objects, and will have a method called ``TransformPoint`` that will transform a set of coordinates for you.
 
@@ -239,7 +239,7 @@ The sample ouput (park name, longitude, latitude, MODIS *x* coordinate and MODIS
     [...]
 
 Some more examples
-""""""""""""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. Modify the script above, try convert the location of the national parks and plot them eg as a circle to the MODIS land cover image. Think about how you deal with parks that may be outside the area covered by the image.
 #. Try to convert the WGS84 data into a different coordinate system, and then convert these new coordinates back into WGS84.
@@ -289,9 +289,9 @@ We now have two files, ``nir_2005001_uk.vrt`` and ``red_2005001_uk.vrt``. We can
         :language: python
         :lines: 101-122
         
-        
+********************************************        
 Reprojecting and resampling data
------------------------------------
+********************************************
 
 The previous section demonstrated how to save raster data. However, in many cases, there's a need to reproject and resample this data. A pragmtic solution would use `gdalwarp <http://www.gdal.org/gdalwarp.html>`_ and do this on the shell. On the one hand, this is convenient, but sometimes, you need to perform this task as a intermediate step, and creating and deleting files is tedious and error-prone. Ideally, you would have a python function that would perform the projection for you. GDAL allows this by defining *in-memory raster files*. These are normal GDAL datasets, but that don't exist on the filesystem, only in the computer's memory. They are a convenient "scratchpad" for quick intermediate calculations. GDAL also makes available a function, ``gdal.ReprojectImage`` that exposes most of the abilities of gdalwarp. We shall combine these two tricks to carry out the reprojection. As an example, we shall look at the case where the NDVI data for the British Isles mentioned in the previous section needs to be reprojected to the Ordnance Survey National Grid, an appropriate projection for the UK.
 
@@ -309,7 +309,7 @@ We expand the main part of the program to (i) save the result of the reprojectio
         :language: python
         :lines: 123-146
         
-The result of running the whole script is  
+The result of running the whole script is shown below
 
     .. figure:: fig_5.*
         :scale: 50
